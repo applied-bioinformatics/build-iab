@@ -5,7 +5,7 @@ Prototyping project structure for An Introduction to Applied Bioinformatics
 
 URLs will look like the following for the hosted notebooks:
 
-http://readIAB.org/book/latest/2/3#1.1.2
+http://readIAB.org/book/latest/2/3/#1.1.2
 
 where:
 * ``latest`` is version of book
@@ -46,3 +46,7 @@ IPython.nbformat.write(s, 'getting-started.ipynb')
 $ date | shasum | head -c 6 | awk '{print "<link src=\""$1"\"/>"}'
 <link src="681472"/>
 ```
+
+## Edit on GitHub links
+
+All sections will have *Edit on GitHub* links just below the section's heading that will take users directly to the editable text on GitHub where they'll be able to submit a pull request. This, in combination with more granular text, will effectively allow us to crowd-source the copy editing (it's currently very difficult to get text edits from users due to the difficultly of diff'ing IPython Notebooks combined with the huge amount of content in each IPython Notebook).
