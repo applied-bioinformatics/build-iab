@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+
+import os
+from sys import argv
+
+import yaml
+
+def build_content_tree(book_root):
+    """Build the IAB package"""
+    content_tree = _build_g(book_root)
+    print content_tree
+
+def _build_g(root):
+    data = yaml.load(open(os.path.join(root, 'index.md')),
+                     Loader=yaml.Loader)
+    section_name = data['title']
+    section_contents = []
+    for c in data['content']:
+        if os.path.isdir(os.path.join(root, c)):
+            section_contents.append(_build_g(os.path.join(root, c)))
+        else:
+            section_fp = '%s.md' % c
+            section_contents.append(section_fp)
+    return section_contents
+
+if __name__ == '__main__':
+    build_content_tree(argv[1])
