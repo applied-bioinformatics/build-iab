@@ -1,2 +1,1 @@
-title: Fundamentals
-content: [pairwise-alignment, multiple-sequence-alignment, phylogenetic-reconstruction]
+# Fundamentals <link src="d59878"/>

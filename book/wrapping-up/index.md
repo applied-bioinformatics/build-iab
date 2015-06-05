@@ -1,2 +1,1 @@
-title: Wrapping Up
-content: [reproducible-bioinformatics]
+# Wrapping Up <link src="6ed3d3"/>

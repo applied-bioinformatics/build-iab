@@ -1,2 +1,1 @@
-title: Applications
-content: [studying-biological-diversity]
+# Applications <link src="cca692"/>

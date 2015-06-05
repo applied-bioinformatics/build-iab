@@ -1,2 +1,1 @@
-title: Multiple Sequence Alignment
-content: [background, iterative, progressive]
+# Multiple Sequence Alignment <link src="8b837f"/>
