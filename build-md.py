@@ -180,4 +180,4 @@ def main(directory):
 
 
 if __name__ == "__main__":
-    main("../book")
+    main("./book")
