@@ -90,12 +90,15 @@ def build_toc_md(root_path=None, file_ext=None):
         if path.startswith(search_prefix):
             indentation = path.count('/') + path.count('.')
             link = link_from_path(path, file_ext)
-            lines.append(' ' * indentation + '[%s](%s)' % (title, link))
+            lines.append(' ' * indentation + '* ' + '[%s](%s)' % (title, link))
     return '\n'.join(lines)
 
-def process_input_md(md, path, link_ext):
+def resolve_md_links(md, path, link_ext):
     for sha, path, title in _build_map:
-        md.replace('alias://%s' % sha, link_from_path(path, file_ext=None))
+        md.replace('alias://%s' % sha, link_from_path(path, file_ext=link_ext))
+    return md
+
+def add_toc_to_md(md, path, link_ext):
     lines = md.split('\n')
     lines = [lines[0]] + [toc % build_toc_md(root_path=path, file_ext=link_ext)] + lines[1:]
     return '\n'.join(lines)
@@ -175,7 +178,8 @@ def convert(input_root, output_root, out_format, dry_run=False,
             # get the book path for this file
             path = fp_to_path(input_fp)
             # apply the processing steps
-            input_md = process_input_md(input_md, path, link_ext)
+            input_md = resolve_md_links(input_md, path, link_ext)
+            input_md = add_toc_to_md(input_md, path, link_ext)
             # Convert it from markdown
             output_s = ipymd.convert(input_md, from_='markdown', to=out_format)
             # define the output filepath
