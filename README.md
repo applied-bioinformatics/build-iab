@@ -13,6 +13,15 @@ where:
 * ``3`` is chapter of unit
 * ``1.2.2`` is sub-sub-section of chapter
 
+# Notes for build process
+
+```bash
+$ pwd
+/Users/caporaso/code/proto-iab
+$ ./build-md.py
+$ ./build-iab built-md/ book-ipynb notebook built-md/map.csv
+```
+
 # Build workflow
 
 * Traverse book recursively (``os.path.walk``)
@@ -28,7 +37,9 @@ where:
  * Do link replace: ``alias://<sha1>`` becomes actual links. This process will differ for notebooks that are being hosted and notebooks that are being zipped for local execution (since the local ones will need ``.ipynb``).
  * Generate ipython notebooks and execute them. ``nbconvert`` to HTML (for the hosted ipynbs) or zip (for the local execution notebooks).
 
-# Notes for build process
+
+
+# Old stuff...
 
 ## Convert the md to ipynb
 
