@@ -47,7 +47,7 @@ Nunc tincidunt velit quis ipsum tincidunt posuere. Aenean consectetur, nisi ut c
 
 ## Using IAB <link src='321abe'/>
 
-You can run really actually code...
+You can really actually run code...
 
 ```python
 >>> print("Hello world!")
