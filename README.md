@@ -36,7 +36,7 @@ where:
 import ipymd
 import IPython
 
-s = ipymd.convert(open('my-markdown.md'), from_='markdown', to='notebook')
+s = ipymd.convert(open('my-markdown.md').read(), from_='markdown', to='notebook')
 IPython.nbformat.write(s, 'getting-started.ipynb')
 ```
 
