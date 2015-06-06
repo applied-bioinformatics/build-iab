@@ -12,27 +12,32 @@ def _skipdir(dir):
 
 _format_ext_map = {'notebook' : 'ipynb'}
 
-_build_map = [('6917e2', '', 'An Introduction to Applied Bioinformatics'),
-              ('b4c2f3', '1', 'Getting Started'),
-              ('cd74b9', '1/1', 'Installation'),
-              ('321abe', '1/2', 'Using IAB'),
-              ('d59878', '2', 'Fundamentals'),
-              ('e85824', '2/1', 'Pairwise Alignment'),
-              ('bc5fe0', '2/2', 'Multiple Sequence Alignment'),
-              ('07abc5', '2/2#1', 'Background'),
-              ('d4a719', '2/2#2', 'Progressive'),
-              ('d9b0ec', '2/2#3', 'Iterative'),
-              ('6d2a25', '2/3', 'Phylogenetic Reconstruction'),
-              ('cca692', '3', 'Applications'),
-              ('30031a', '3/1', 'Studying Biological Diversity'),
-              ('6ed3d3', '4', 'Wrapping Up'),
-              ('a465da', '4/1', 'Reproducible Bioinformatics')]
+# _build_map = [('6917e2', '', 'An Introduction to Applied Bioinformatics'),
+#               ('b4c2f3', '1', 'Getting Started'),
+#               ('cd74b9', '1/1', 'Installation'),
+#               ('321abe', '1/2', 'Using IAB'),
+#               ('d59878', '2', 'Fundamentals'),
+#               ('e85824', '2/1', 'Pairwise Alignment'),
+#               ('bc5fe0', '2/2', 'Multiple Sequence Alignment'),
+#               ('07abc5', '2/2#1', 'Background'),
+#               ('d4a719', '2/2#2', 'Progressive'),
+#               ('d9b0ec', '2/2#3', 'Iterative'),
+#               ('6d2a25', '2/3', 'Phylogenetic Reconstruction'),
+#               ('cca692', '3', 'Applications'),
+#               ('30031a', '3/1', 'Studying Biological Diversity'),
+#               ('6ed3d3', '4', 'Wrapping Up'),
+#               ('a465da', '4/1', 'Reproducible Bioinformatics')]
 
 toc = """## Table of Contents
 
 %s
 
 """
+
+def parse_build_map(f):
+    result = []
+    for line in f:
+        result.append(line.split(','))
 
 def build_link(unit=None, chapter=None, section=None, file_ext=None):
     if unit is None:
@@ -63,7 +68,7 @@ def link_from_path(path, file_ext):
 
     return build_link(unit, chapter, section, file_ext)
 
-def build_toc_md(root_path=None, file_ext=None):
+def build_toc_md(build_map, root_path=None, file_ext=None):
     """ Build a markdown table of contents of links
 
         Parameters
@@ -86,15 +91,15 @@ def build_toc_md(root_path=None, file_ext=None):
         search_prefix = ''
     else:
         search_prefix = root_path
-    for sha, path, title in _build_map:
+    for sha, path, title in build_map:
         if path.startswith(search_prefix):
             indentation = path.count('/') + path.count('.')
             link = link_from_path(path, file_ext)
             lines.append(' ' * indentation + '* ' + '[%s](%s)' % (title, link))
     return '\n'.join(lines)
 
-def resolve_md_links(md, path, link_ext):
-    for sha, path, title in _build_map:
+def resolve_md_links(build_map, md, path, link_ext):
+    for sha, path, title in build_map:
         md.replace('alias://%s' % sha, link_from_path(path, file_ext=link_ext))
     return md
 
@@ -122,7 +127,7 @@ def get_output_fp(output_root, input_fp, output_ext):
     return output_dir, output_fp
 
 
-def convert(input_root, output_root, out_format, dry_run=False,
+def convert(input_root, output_root, out_format, build_map, dry_run=False,
             format_ext_map=_format_ext_map, include_link_ext=True):
     """ Convert md sources to readable book content, maintaining dir structure.
 
@@ -178,8 +183,8 @@ def convert(input_root, output_root, out_format, dry_run=False,
             # get the book path for this file
             path = fp_to_path(input_fp)
             # apply the processing steps
-            input_md = resolve_md_links(input_md, path, link_ext)
-            input_md = add_toc_to_md(input_md, path, link_ext)
+            input_md = resolve_md_links(build_map, input_md, path, link_ext)
+            input_md = add_toc_to_md(build_map, input_md, path, link_ext)
             # Convert it from markdown
             output_s = ipymd.convert(input_md, from_='markdown', to=out_format)
             # define the output filepath
@@ -195,5 +200,11 @@ def convert(input_root, output_root, out_format, dry_run=False,
                 IPython.nbformat.write(output_s, output_fp)
 
 if __name__ == '__main__':
-    convert(argv[1], argv[2], argv[3])
+    usage = """./build-iab book-md-test/ book-ipynb notebook
+
+    arg1 : root markdown dir
+    arg2 : output dir
+    arg3 : output format (always "notebook" for now)
+"""
+    convert(argv[1], argv[2], argv[3], parse_build_map(argv[4]))
     #print build_toc_md('3')
