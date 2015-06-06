@@ -173,7 +173,10 @@ def main(directory):
     with open('map.csv', 'w') as f:
         writer = csv.writer(f)
         for node in tree:
-            writer.writerow([node.id, node.path, node.title])
+            #HACK
+            path = node.path
+            path = path.replace('.', '/', 1).replace('.', '#', 1)
+            writer.writerow([node.id, path, node.title])
 
 
     return tree

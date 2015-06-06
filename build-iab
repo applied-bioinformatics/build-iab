@@ -37,7 +37,8 @@ toc = """## Table of Contents
 def parse_build_map(f):
     result = []
     for line in f:
-        result.append(line.split(','))
+        result.append(line.strip().split(','))
+    return result
 
 def build_link(unit=None, chapter=None, section=None, file_ext=None):
     if unit is None:
@@ -103,9 +104,9 @@ def resolve_md_links(build_map, md, path, link_ext):
         md.replace('alias://%s' % sha, link_from_path(path, file_ext=link_ext))
     return md
 
-def add_toc_to_md(md, path, link_ext):
+def add_toc_to_md(build_map, md, path, link_ext):
     lines = md.split('\n')
-    lines = [lines[0]] + [toc % build_toc_md(root_path=path, file_ext=link_ext)] + lines[1:]
+    lines = [lines[0]] + [toc % build_toc_md(build_map, root_path=path, file_ext=link_ext)] + lines[1:]
     return '\n'.join(lines)
 
 def fp_to_path(fp):
@@ -206,5 +207,5 @@ if __name__ == '__main__':
     arg2 : output dir
     arg3 : output format (always "notebook" for now)
 """
-    convert(argv[1], argv[2], argv[3], parse_build_map(argv[4]))
+    convert(argv[1], argv[2], argv[3], parse_build_map(open(argv[4])))
     #print build_toc_md('3')
