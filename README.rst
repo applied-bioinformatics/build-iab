@@ -1,6 +1,16 @@
 build-iab
 =========
-Build script for An Introduction to Applied Bioinformatics
+Build script for [An Introduction to Applied Bioinformatics](http://www.readIAB.org).
+
+Installation
+------------
+
+Pending an official release of [ipymd](https://github.com/rossant/ipymd) which supports pip-installation and an official release of build-iab, run the following two commands to install ``biab``::
+
+```
+pip install https://github.com/rossant/ipymd/archive/master.zip
+pip install https://github.com/gregcaporaso/build-iab/archive/master.zip
+```
 
 Usage
 -----

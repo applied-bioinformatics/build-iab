@@ -9,6 +9,7 @@
 # ----------------------------------------------------------------------------
 
 from setuptools import find_packages, setup
+from glob import glob
 
 __version__ = "0.0.0-dev"
 
