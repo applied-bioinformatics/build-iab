@@ -168,13 +168,14 @@ def build_path(tree, path):
         build_path(child, ".".join([path, str(i)]) if path else str(i))
 
 def make_toc(node, ext):
-    toc = []
+    toc = ['*Table of Contents*\n']
     depth = node.depth()
     for n in node:
         link = make_link(n, from_=node, ext=ext)
         title = n.title
         indentation =  n.depth() - depth
-        toc.append((' ' * indentation) + '* [%s](%s)\n' % (title, link))
+        toc.append(('    ' * indentation) + '* [%s](%s)\n' % (title, link))
+    toc.append('\n')
     return toc
 
 
@@ -187,13 +188,13 @@ def build_md_main(directory, ext):
 
     for n in tree:
         n.content.insert(0,
-            "[Edit on GitHub](https://github.com/gregcaporaso/proto-iab/edit"
-            "/master/book/%s#L%d)\n" % (n.file, n.start))
+            "\n[Edit on GitHub](https://github.com/gregcaporaso/proto-iab/edit"
+            "/master/book/%s#L%d)\n\n" % (n.file, n.start))
 
     for n in tree:
         spath = n.path.split('.', 2)
         if len(spath) == 3:
-            n.content.insert(0, "<a name='%s'></a>\n" % spath[-1])
+            n.content.insert(0, "<a name='%s'></a>" % spath[-1])
 
     for node in tree:
         rel_depth = node.depth()
@@ -218,7 +219,6 @@ def build_md_main(directory, ext):
         path = node.path
         path = path.replace('.', '/', 1).replace('.', '#', 1)
         build_map.append([node.id, path, node.title])
-    print out
 
     return out, build_map
 
