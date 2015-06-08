@@ -8,7 +8,6 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from runipy.notebook_runner import NotebookRunner
 from IPython.nbconvert import HTMLExporter
 from IPython.config import Config
 from sys import argv
@@ -190,11 +189,15 @@ def make_toc(node, ext):
         return []
     return toc
 
-
-def build_md_main(directory, ext, repo, root, **settings):
+def make_tree(directory):
     os.chdir(directory)
     tree = build_branch('')
     build_path(tree, '')
+    return tree
+
+def build_md_main(directory, ext, repo, root, **settings):
+    tree = make_tree(directory)
+
     id_map = []
     for node in tree:
         id_map.append((node.id, node))
