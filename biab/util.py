@@ -41,7 +41,7 @@ class Node(object):
         self.content = []
         self.title = ''
         self.id = ''
-        self.line = 1
+        self.start = 1
         self.file = ''
 
     def __getitem__(self, key):
@@ -118,7 +118,7 @@ def expand_file(fp):
             current_node.start = node.start_line
             current_node.file = fp
             current_node.content = lines[node.start_line:]
-            last_node.content = last_node.content[:node.start_line - last_node.line]
+            last_node.content = last_node.content[:node.start_line - last_node.start - 1]
             last_node = current_node
 
     return root.children[0]
@@ -137,7 +137,7 @@ def build_branch(rootdir):
 
     return tree
 
-def make_link(node, from_=None, ext):
+def make_link(node, from_=None, ext=''):
     link = []
     path = node.path.split('.')
     from_path = from_.path.split('.')
@@ -146,9 +146,10 @@ def make_link(node, from_=None, ext):
     for i, (t, f) in enumerate(izip_longest(path, from_path), 0):
         if i < 1:
             if t != f:
-                change_dir = True
-                link.insert(0, '../')
                 link.append(t + '/')
+                if f:
+                    change_dir = True
+                    link.insert(0, '../')
 
         elif i == 1:
             if t != f or change_dir:
@@ -169,10 +170,10 @@ def make_toc(node, ext):
     toc = []
     depth = node.depth()
     for n in node:
-        link = make_link(n, from_=node, ext)
+        link = make_link(n, from_=node, ext=ext)
         title = n.title
-        indentation =  depth - n.depth()
-        toc.append(' ' * indentation + '* [%s](%s)' % (title, link))
+        indentation =  n.depth() - depth
+        toc.append((' ' * indentation) + '* [%s](%s)\n' % (title, link))
     return toc
 
 
@@ -186,7 +187,7 @@ def build_md_main(directory, ext):
     for n in tree:
         n.content.insert(0,
             "[Edit on GitHub](https://github.com/gregcaporaso/proto-iab/edit"
-            "/master/book/%s#L%d)\n" % (n.file, n.line))
+            "/master/book/%s#L%d)\n" % (n.file, n.start))
 
     for n in tree:
         spath = n.path.split('.', 2)
@@ -216,6 +217,7 @@ def build_md_main(directory, ext):
         path = node.path
         path = path.replace('.', '/', 1).replace('.', '#', 1)
         build_map.append([node.id, path, node.title])
+    print out
 
     return out, build_map
 
@@ -369,18 +371,18 @@ def build_iab_main(input_root, output_root, out_format, build_map,
     for unit_number, (unit, chapters) in enumerate(input_root):
         # Iterate over the files in the current root.
         if unit_number == 0:
-            unit_path = '0'
+            unit_path = ''
         else:
-            unit_path = str(unit_number)
+            unit_path = str(unit_number) + '/'
         for chapter_number, content_md in enumerate(chapters):
             if chapter_number == 0:
                 chapter_path = 'index'
             else:
                 chapter_path = str(chapter_number)
-            path = '%s/%s' % (unit_path, chapter_path)
+            path = '%s%s' % (unit_path, chapter_path)
             # apply the processing steps
             content_md = resolve_md_links(build_map, content_md, path, link_ext)
-            content_md = add_toc_to_md(build_map, content_md, path, link_ext)
+            #content_md = add_toc_to_md(build_map, content_md, path, link_ext)
             # Convert it from markdown
             output_s = ipymd.convert(content_md, from_='markdown', to=out_format)
             # define the output filepath
@@ -393,7 +395,7 @@ def build_iab_main(input_root, output_root, out_format, build_map,
             IPython.nbformat.write(output_s, output_fp)
 
 def biab_notebook(input_dir, output_dir):
-    built_md, build_map = build_md_main(input_dir)
+    built_md, build_map = build_md_main(input_dir, '.ipynb')
     build_iab_main(built_md, output_dir, 'notebook', build_map)
 
 if __name__ == "__main__":
