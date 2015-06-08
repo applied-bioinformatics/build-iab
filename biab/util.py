@@ -367,7 +367,6 @@ def build_iab_main(input_root, output_root, out_format, build_map,
                 html_out, _ = html_exporter.from_filename(os.path.join(root, f))
                 output_fn = os.path.extsep.join([os.path.splitext(f)[0], 'html'])
                 output_fp = os.path.join(root, output_fn)
-                print output_fp
                 open(output_fp, 'w').write(html_out)
 
 
