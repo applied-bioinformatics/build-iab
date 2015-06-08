@@ -9,7 +9,7 @@
 # ----------------------------------------------------------------------------
 
 import click
-
+from biab.util import make_tree
 
 _input = click.option('-i', '--input',  required=True,
                       type=click.Path(exists=True, file_okay=False))
@@ -23,10 +23,10 @@ cli = click.Group()
 
 @cli.command()
 @_input
-@_output
-def map(input, output):
-    if input is None:
-        raise
+def aliases(input):
+    tree = make_tree(input)
+    for node in tree:
+        click.echo("%s\t%s\t%s" % (node.id, node.path, node.title))
 
 
 @cli.command()
