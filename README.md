@@ -36,28 +36,3 @@ $ ./build-iab built-md/ book-ipynb notebook built-md/map.csv
  * Do depth-first pre-order traversal catting all content into chapter markdown files.
  * Do link replace: ``alias://<sha1>`` becomes actual links. This process will differ for notebooks that are being hosted and notebooks that are being zipped for local execution (since the local ones will need ``.ipynb``).
  * Generate ipython notebooks and execute them. ``nbconvert`` to HTML (for the hosted ipynbs) or zip (for the local execution notebooks).
-
-
-
-# Old stuff...
-
-## Convert the md to ipynb
-
-```python
-import ipymd
-import IPython
-
-s = ipymd.convert(open('my-markdown.md').read(), from_='markdown', to='notebook')
-IPython.nbformat.write(s, 'getting-started.ipynb')
-```
-
-## One-liner to get sha1 tags
-
-```bash
-$ date | shasum | head -c 6 | awk '{print "<link src=\""$1"\"/>"}'
-<link src="681472"/>
-```
-
-## Edit on GitHub links
-
-All sections will have *Edit on GitHub* links just below the section's heading that will take users directly to the editable text on GitHub where they'll be able to submit a pull request. This, in combination with more granular text, will effectively allow us to crowd-source the copy editing (it's currently very difficult to get text edits from users due to the difficultly of diff'ing IPython Notebooks combined with the huge amount of content in each IPython Notebook).
