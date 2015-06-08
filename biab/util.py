@@ -186,6 +186,8 @@ def make_toc(node, ext):
             indentation =  n.depth() - depth - 1
             toc.append(('    ' * indentation) + '* [%s](%s)\n' % (title, link))
     toc.append('\n')
+    if len(toc) == 2:
+        return []
     return toc
 
 
