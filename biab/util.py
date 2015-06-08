@@ -147,20 +147,27 @@ def make_link(node, from_=None, ext=''):
     for i, (t, f) in enumerate(izip_longest(path, from_path), 0):
         if i < 1:
             if t != f:
-                link.append(t + '/')
+                if t:
+                    link.append(t + '/')
+                elif not f:
+                    link.append('/')
                 if f:
                     change_dir = True
                     link.insert(0, '../')
 
-        elif i == 1:
+        elif t and i == 1:
             if t != f or change_dir:
                 link.append(t + ext)
-        elif i == 2:
+        elif t and i == 2:
             link.append('#' + t)
-        elif i > 2:
+        elif t and i > 2:
             link.append('.' + t)
 
-    return ''.join(link)
+    link = ''.join(link)
+    if link and link[-1] == '/':
+        link += 'index' + ext
+
+    return link
 
 def build_path(tree, path):
     tree.path = path
@@ -168,13 +175,14 @@ def build_path(tree, path):
         build_path(child, ".".join([path, str(i)]) if path else str(i))
 
 def make_toc(node, ext):
-    toc = ['*Table of Contents*\n']
+    toc = ['**Table of Contents**\n']
     depth = node.depth()
     for n in node:
-        link = make_link(n, from_=node, ext=ext)
-        title = n.title
-        indentation =  n.depth() - depth
-        toc.append(('    ' * indentation) + '* [%s](%s)\n' % (title, link))
+        if n is not node:
+            link = make_link(n, from_=node, ext=ext)
+            title = n.title
+            indentation =  n.depth() - depth - 1
+            toc.append(('    ' * indentation) + '* [%s](%s)\n' % (title, link))
     toc.append('\n')
     return toc
 
@@ -183,6 +191,10 @@ def build_md_main(directory, ext):
     os.chdir(directory)
     tree = build_branch('')
     build_path(tree, '')
+    id_map = []
+    for node in tree:
+        id_map.append((node.id, node))
+
     for n in tree:
         n.content = make_toc(n, ext) + n.content
 
@@ -203,118 +215,25 @@ def build_md_main(directory, ext):
         else:
             node.content.insert(0, ('#' * (node.depth() - 2))+' %s ' % node.title)
 
+    for node in tree:
+        node.content = ''.join(node.content)
+        for id, n in id_map:
+            a, b = 'alias://%s' % id, make_link(n, from_=node, ext=ext)
+            node.content = node.content.replace(a, b)
 
     out = []
 
-    out.append(('', [''.join(tree.content)]))
+    out.append(('', [tree.content]))
     for i, unit in enumerate(tree.children, 1):
-        chapters = [''.join(unit.content)]
+        chapters = [unit.content]
         out.append((str(i), chapters))
         for chapter in unit.children:
-            chapters.append(''.join([''.join(section.content) for section in chapter]))
+            chapters.append(''.join([section.content for section in chapter]))
 
-    build_map = []
-    for node in tree:
-        #HACK
-        path = node.path
-        path = path.replace('.', '/', 1).replace('.', '#', 1)
-        build_map.append([node.id, path, node.title])
-
-    return out, build_map
-
-def _skipdir(dir):
-    return '.ipynb_checkpoints' in dir
+    return out
 
 _format_ext_map = {'notebook' : 'ipynb'}
 
-toc = """## Table of Contents
-
-%s
-
-"""
-
-def parse_build_map(f):
-    result = []
-    for line in f:
-        result.append(line.strip().split(','))
-    return result
-
-def build_link(unit=None, chapter=None, section=None, file_ext=None):
-    if unit is None:
-        return './'
-    elif chapter is None:
-        return './%s' % unit
-    elif file_ext is None:
-        link = './%s/%s' % (unit, chapter)
-    else:
-        link = './%s/%s%s%s' % (unit, chapter, os.path.extsep, file_ext)
-
-    if section is None:
-        return link
-    else:
-        return '%s#%s' % (link, section)
-
-def link_from_path(path, file_ext):
-
-    if '/' in path:
-        unit, chapter_section = path.split('/')
-    else:
-        return build_link(path, chapter=None, section=None, file_ext=file_ext)
-
-    if '#' in chapter_section:
-        chapter, section = chapter_section.split('#')
-    else:
-        return build_link(unit, chapter=chapter_section, section=None, file_ext=file_ext)
-
-    return build_link(unit, chapter, section, file_ext)
-
-def build_toc_md(build_map, root_path=None, file_ext=None):
-    """ Build a markdown table of contents of links
-
-        Parameters
-        ----------
-        root_path : str, None
-            The root path to start the table of contents from. If None, start
-            at the book's root.
-        file_ext : str
-            The file extension to append to chapters, if the links that are
-            generated need to include a filename extension.
-
-        Returns
-        -------
-        str
-            Markdown text that can be printed as a table of contents.
-
-    """
-    lines = []
-    if root_path is None:
-        search_prefix = ''
-    else:
-        search_prefix = root_path
-    for sha, path, title in build_map:
-        if path.startswith(search_prefix):
-            indentation = path.count('/') + path.count('.')
-            link = link_from_path(path, file_ext)
-            lines.append(' ' * indentation + '* ' + '[%s](%s)' % (title, link))
-    return lines
-
-def resolve_md_links(build_map, md, path, link_ext):
-    for sha, path, title in build_map:
-        md.replace('alias://%s' % sha, link_from_path(path, file_ext=link_ext))
-    return md
-
-def add_toc_to_md(build_map, md, path, link_ext):
-    lines = md.split('\n')
-    lines = [lines[0]] + [toc % build_toc_md(build_map, root_path=path, file_ext=link_ext)] + lines[1:]
-    return '\n'.join(lines)
-
-def fp_to_path(fp):
-    fields = fp.split(os.path.sep)[1:]
-    if fields[-1] == 'index.md':
-        fields = fields[:-1]
-    else:
-        fields[-1] = os.path.splitext(fields[-1])[0]
-    return '/'.join(fields)
 
 def get_output_fp(output_root, path, output_ext):
     # input_dir, input_fn = os.path.split(input_fp)
@@ -326,7 +245,7 @@ def get_output_fp(output_root, path, output_ext):
     return output_fp
 
 
-def build_iab_main(input_root, output_root, out_format, build_map,
+def build_iab_main(input_root, output_root, out_format,
                    dry_run=False, format_ext_map=_format_ext_map,
                    include_link_ext=True, runipy=True):
     """ Convert md sources to readable book content, maintaining dir structure.
@@ -384,9 +303,6 @@ def build_iab_main(input_root, output_root, out_format, build_map,
             else:
                 chapter_path = str(chapter_number)
             path = '%s%s' % (unit_path, chapter_path)
-            # apply the processing steps
-            content_md = resolve_md_links(build_map, content_md, path, link_ext)
-            #content_md = add_toc_to_md(build_map, content_md, path, link_ext)
             # Convert it from markdown
             output_s = ipymd.convert(content_md, from_='markdown', to=out_format)
             # define the output filepath
@@ -406,8 +322,8 @@ def build_iab_main(input_root, output_root, out_format, build_map,
 
 
 def biab_notebook(input_dir, output_dir):
-    built_md, build_map = build_md_main(input_dir, '.ipynb')
-    build_iab_main(built_md, output_dir, 'notebook', build_map)
+    built_md = build_md_main(input_dir, '.ipynb')
+    build_iab_main(built_md, output_dir, 'notebook')
 
 if __name__ == "__main__":
     input_dir = argv[1]
