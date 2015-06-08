@@ -8,11 +8,12 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
-
+from sys import argv
 import os
-import fnmatch
+import tempfile
 import CommonMark as cm
-from os.path import splitext
+import ipymd
+import IPython
 from six.moves.html_parser import HTMLParser
 import yaml
 import shutil
@@ -71,7 +72,7 @@ class Node(object):
         return d
 
 def expand_file(fp):
-    if splitext(fp)[1] != '.md':
+    if os.path.splitext(fp)[1] != '.md':
         raise ValueError("Not a markdown file: %r" % fp)
 
     with open(fp) as f:
@@ -161,8 +162,8 @@ def build_md_main(directory):
 
     os.chdir('..')
     shutil.rmtree('built-md', ignore_errors=True)
-    os.mkdir('built-md')
-    os.chdir('built-md')
+    output_dir = tempfile.mkdtemp()
+    os.chdir(output_dir)
 
     with open('index.md', 'w') as f:
         f.write(''.join(tree.content))
@@ -176,16 +177,14 @@ def build_md_main(directory):
             with open(os.path.join(folder, str(k) + '.md'), 'w') as f:
                 for section in chapter:
                     f.write(''.join(section.content))
+    build_map = []
+    for node in tree:
+        #HACK
+        path = node.path
+        path = path.replace('.', '/', 1).replace('.', '#', 1)
+        build_map.append([node.id, path, node.title])
 
-    with open('map.csv', 'w') as f:
-        writer = csv.writer(f)
-        for node in tree:
-            #HACK
-            path = node.path
-            path = path.replace('.', '/', 1).replace('.', '#', 1)
-            writer.writerow([node.id, path, node.title])
-
-    return tree
+    return output_dir, build_map
 
 def _skipdir(dir):
     return '.ipynb_checkpoints' in dir
@@ -282,6 +281,7 @@ def fp_to_path(fp):
     return '/'.join(fields)
 
 def get_output_fp(output_root, input_fp, output_ext):
+    print input_fp, output_root
     input_dir, input_fn = os.path.split(input_fp)
     input_basename = os.path.splitext(input_fn)[0]
     input_dirs = input_dir.split(os.path.sep)
@@ -325,7 +325,7 @@ def build_iab_main(input_root, output_root, out_format, build_map,
         output_ext = format_ext_map[out_format]
     except KeyError:
         raise ValueError("Unknown output format: %s. Known formats are: "
-                         "%s" % ", ".join(format_ext_map.keys()))
+                         "%s" % (out_format, ", ".join(format_ext_map.keys())))
     # If links should include the file extension, define that here. Otherwise,
     # it is set to None, and there will be no extension included in the links.
     if include_link_ext:
@@ -339,7 +339,7 @@ def build_iab_main(input_root, output_root, out_format, build_map,
         # Determine if current root is one that we want to skip (e.g., a hidden
         # directory). If so, move on...
         if _skipdir(root): continue
-
+        print root, files
         # Iterate over the files in the current root.
         for input_fn in files:
             # Get the full path
@@ -355,12 +355,16 @@ def build_iab_main(input_root, output_root, out_format, build_map,
             output_s = ipymd.convert(input_md, from_='markdown', to=out_format)
             # define the output filepath
             output_dir, output_fp = get_output_fp(output_root, input_fp, output_ext)
+            print output_dir, output_fp
+            # write the output notebook
+            #IPython.nbformat.write(output_s, output_fp)
 
-            if dry_run:
-                print "Convert %s to %s." % (input_fp, output_fp)
-            else:
-                try:
-                    os.makedirs(output_dir)
-                except OSError:
-                    pass
-                IPython.nbformat.write(output_s, output_fp)
+def biab_notebook(input_dir, output_dir):
+    built_md_dir, build_map = build_md_main(input_dir)
+    print built_md_dir
+    build_iab_main(built_md_dir, output_dir, 'notebook', build_map)
+
+if __name__ == "__main__":
+    input_dir = argv[1]
+    output_dir = os.path.abspath(argv[2])
+    biab_notebook(input_dir, output_dir)
