@@ -160,23 +160,16 @@ def build_md_main(directory):
         else:
             node.content.insert(0, ('#' * (node.depth() - 2))+' %s ' % node.title)
 
-    os.chdir('..')
-    shutil.rmtree('built-md', ignore_errors=True)
-    output_dir = tempfile.mkdtemp()
-    os.chdir(output_dir)
 
-    with open('index.md', 'w') as f:
-        f.write(''.join(tree.content))
+    out = []
+
+    out.append(('', [''.join(tree.content)]))
     for i, unit in enumerate(tree.children, 1):
-        folder = str(i)
-        os.mkdir(folder)
+        chapters = [''.join(unit.content)]
+        out.append((str(i), chapters))
+        for chapter in unit.children:
+            chapters.append(''.join([''.join(section.content) for section in chapter]))
 
-        with open(os.path.join(folder, 'index.md'), 'w') as f:
-            f.write(''.join(unit.content))
-        for k, chapter in enumerate(unit.children, 1):
-            with open(os.path.join(folder, str(k) + '.md'), 'w') as f:
-                for section in chapter:
-                    f.write(''.join(section.content))
     build_map = []
     for node in tree:
         #HACK
@@ -184,7 +177,7 @@ def build_md_main(directory):
         path = path.replace('.', '/', 1).replace('.', '#', 1)
         build_map.append([node.id, path, node.title])
 
-    return output_dir, build_map
+    return out, build_map
 
 def _skipdir(dir):
     return '.ipynb_checkpoints' in dir
