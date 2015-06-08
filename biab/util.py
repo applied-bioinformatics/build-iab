@@ -273,16 +273,14 @@ def fp_to_path(fp):
         fields[-1] = os.path.splitext(fields[-1])[0]
     return '/'.join(fields)
 
-def get_output_fp(output_root, input_fp, output_ext):
-    print input_fp, output_root
-    input_dir, input_fn = os.path.split(input_fp)
-    input_basename = os.path.splitext(input_fn)[0]
-    input_dirs = input_dir.split(os.path.sep)
+def get_output_fp(output_root, path, output_ext):
+    # input_dir, input_fn = os.path.split(input_fp)
+    # input_basename = os.path.splitext(input_fn)[0]
+    # input_dirs = input_dir.split(os.path.sep)
 
-    output_fn = os.path.extsep.join([input_basename, output_ext])
-    output_dir = os.path.sep.join([output_root] + input_dirs[1:])
+    output_fn = os.path.extsep.join([path, output_ext])
     output_fp = os.path.join(output_dir, output_fn)
-    return output_dir, output_fp
+    return output_fp
 
 
 def build_iab_main(input_root, output_root, out_format, build_map,
@@ -328,34 +326,35 @@ def build_iab_main(input_root, output_root, out_format, build_map,
 
     # Walk the input root directory. We only care about root and files
     # inside this loop (nothing happens with dirs).
-    for root, dirs, files in os.walk(input_root):
-        # Determine if current root is one that we want to skip (e.g., a hidden
-        # directory). If so, move on...
-        if _skipdir(root): continue
-        print root, files
+    for unit_number, (unit, chapters) in enumerate(input_root):
         # Iterate over the files in the current root.
-        for input_fn in files:
-            # Get the full path
-            input_fp = os.path.join(root, input_fn)
-            # read it into a string
-            input_md = open(input_fp).read()
-            # get the book path for this file
-            path = fp_to_path(input_fp)
+        if unit_number == 0:
+            unit_path = '0'
+        else:
+            unit_path = str(unit_number)
+        for chapter_number, content_md in enumerate(chapters):
+            if chapter_number == 0:
+                chapter_path = 'index'
+            else:
+                chapter_path = str(chapter_number)
+            path = '%s/%s' % (unit_path, chapter_path)
             # apply the processing steps
-            input_md = resolve_md_links(build_map, input_md, path, link_ext)
-            input_md = add_toc_to_md(build_map, input_md, path, link_ext)
+            content_md = resolve_md_links(build_map, content_md, path, link_ext)
+            content_md = add_toc_to_md(build_map, content_md, path, link_ext)
             # Convert it from markdown
-            output_s = ipymd.convert(input_md, from_='markdown', to=out_format)
+            output_s = ipymd.convert(content_md, from_='markdown', to=out_format)
             # define the output filepath
-            output_dir, output_fp = get_output_fp(output_root, input_fp, output_ext)
-            print output_dir, output_fp
+            output_fp = get_output_fp(output_root, path, output_ext)
+            try:
+                os.makedirs(os.path.split(output_fp)[0])
+            except OSError:
+                pass
             # write the output notebook
-            #IPython.nbformat.write(output_s, output_fp)
+            IPython.nbformat.write(output_s, output_fp)
 
 def biab_notebook(input_dir, output_dir):
-    built_md_dir, build_map = build_md_main(input_dir)
-    print built_md_dir
-    build_iab_main(built_md_dir, output_dir, 'notebook', build_map)
+    built_md, build_map = build_md_main(input_dir)
+    build_iab_main(built_md, output_dir, 'notebook', build_map)
 
 if __name__ == "__main__":
     input_dir = argv[1]
