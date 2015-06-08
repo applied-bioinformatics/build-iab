@@ -72,7 +72,7 @@ def expand_file(fp):
     root = Node()
     root.file = fp
     current_node = root
-    scribe_node = root
+    last_node = root
 
     current_level = 0
 
@@ -97,11 +97,12 @@ def expand_file(fp):
                 current_node = new
                 current_level += 1
 
-            # Be at the correct node:
-            current_node.title = node.inline_content[0].c.strip()
+
             parser = IDFinder()
-            parser.feed(node.inline_content[1].c.strip())
+            parser.feed(node.inline_content[-1].c.strip())
             parser.close()
+
+            current_node.title = node.inline_content[0].c.strip()
             current_node.id = parser.get_id()
             current_node.line = node.start_line
             current_node.file = fp
@@ -109,11 +110,8 @@ def expand_file(fp):
             current_node.content.insert(0,
                 "\n[Edit on GitHub](https://github.com/gregcaporaso/proto-iab/edit"
                 "/master/book/%s#L%d)\n" % (current_node.file, current_node.line))
-            scribe_node.content = lines[scribe_node.line:node.start_line-1]
-            scribe_node.content.insert(0,
-                "\n[Edit on GitHub](https://github.com/gregcaporaso/proto-iab/edit"
-                "/master/book/%s#L%d)\n" % (scribe_node.file, scribe_node.line))
-            scribe_node = current_node
+            last_node.content = last_node.content[:node.start_line - last_node.line]
+            last_node = current_node
 
     return root.children[0]
 
@@ -143,7 +141,7 @@ def main(directory):
     for n in tree:
         spath = n.path.split('.', 2)
         if len(spath) == 3:
-            n.content.insert(0, "<a name='%s'></a>" % spath[2])
+            n.content.insert(0, "<a name='%s'></a>" % spath[-1])
 
     for node in tree:
         rel_depth = node.depth()
