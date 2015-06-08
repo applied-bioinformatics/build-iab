@@ -9,6 +9,8 @@
 # ----------------------------------------------------------------------------
 
 from runipy.notebook_runner import NotebookRunner
+from IPython.nbconvert import HTMLExporter
+from IPython.config import Config
 from sys import argv
 import os
 import tempfile
@@ -280,13 +282,13 @@ def get_output_fp(output_root, path, output_ext):
     # input_dirs = input_dir.split(os.path.sep)
 
     output_fn = os.path.extsep.join([path, output_ext])
-    output_fp = os.path.join(output_dir, output_fn)
+    output_fp = os.path.join(output_root, output_fn)
     return output_fp
 
 
 def build_iab_main(input_root, output_root, out_format, build_map,
                    dry_run=False, format_ext_map=_format_ext_map,
-                   include_link_ext=True, runipy=True):
+                   include_link_ext=True, execute=True, html_output_root=None):
     """ Convert md sources to readable book content, maintaining dir structure.
 
         A few additional processing steps happen here:
@@ -308,9 +310,9 @@ def build_iab_main(input_root, output_root, out_format, build_map,
             Dict mapping ipymd format to file extension.
         include_link_ext : bool, optional
             If ``True``, when creating links include file extensions.
-        runipy: bool, optional
-            If ``True``, run the ipython notebooks that are generated, so they
-            contain output for code cells.
+        execute: bool, optional
+            If ``True``, execute the ipython notebooks that are generated, so
+            they contain output for code cells.
 
     """
 
@@ -354,20 +356,28 @@ def build_iab_main(input_root, output_root, out_format, build_map,
             except OSError:
                 pass
 
-            # write the output notebook
+            # write the output ipynb
             IPython.nbformat.write(output_s, output_fp)
-            if runipy:
-                notebook = IPython.nbformat.current.read(open(output_fp), 'json')
-                r = NotebookRunner(notebook)
-                r.run_notebook(notebook)
-                IPython.nbformat.write(r.nb, output_fp)
+
+    if html_output_root is not None:
+        html_exporter = HTMLExporter(preprocessors=['IPython.nbconvert.preprocessors.execute.ExecutePreprocessor'])
+
+        for root, dirs, files in os.walk(output_root):
+            for f in files:
+                html_out, _ = html_exporter.from_filename(os.path.join(root, f))
+                output_fn = os.path.extsep.join([os.path.splitext(f)[0], 'html'])
+                output_fp = os.path.join(root, output_fn)
+                print output_fp
+                open(output_fp, 'w').write(html_out)
 
 
-def biab_notebook(input_dir, output_dir):
+
+def biab_notebook(input_dir, output_dir, html_output_dir):
     built_md, build_map = build_md_main(input_dir)
-    build_iab_main(built_md, output_dir, 'notebook', build_map)
+    build_iab_main(built_md, output_dir, 'notebook', build_map, html_output_root=html_output_dir)
 
 if __name__ == "__main__":
     input_dir = argv[1]
-    output_dir = os.path.abspath(argv[2])
-    biab_notebook(input_dir, output_dir)
+    ipynb_output_dir = os.path.abspath(argv[2])
+    html_output_dir = os.path.abspath(argv[3])
+    biab_notebook(input_dir, ipynb_output_dir, html_output_dir)
