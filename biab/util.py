@@ -9,6 +9,7 @@
 # ----------------------------------------------------------------------------
 
 from sys import argv
+from itertools import izip_longest
 import os
 import tempfile
 import CommonMark as cm
@@ -114,12 +115,9 @@ def expand_file(fp):
 
             current_node.title = node.inline_content[0].c.strip()
             current_node.id = parser.get_id()
-            current_node.line = node.start_line
+            current_node.start = node.start_line
             current_node.file = fp
             current_node.content = lines[node.start_line:]
-            current_node.content.insert(0,
-                "\n[Edit on GitHub](https://github.com/gregcaporaso/proto-iab/edit"
-                "/master/book/%s#L%d)\n" % (current_node.file, current_node.line))
             last_node.content = last_node.content[:node.start_line - last_node.line]
             last_node = current_node
 
@@ -139,19 +137,61 @@ def build_branch(rootdir):
 
     return tree
 
+def make_link(node, from_=None, ext):
+    link = []
+    path = node.path.split('.')
+    from_path = from_.path.split('.')
+    change_dir = False
+
+    for i, (t, f) in enumerate(izip_longest(path, from_path), 0):
+        if i < 1:
+            if t != f:
+                change_dir = True
+                link.insert(0, '../')
+                link.append(t + '/')
+
+        elif i == 1:
+            if t != f or change_dir:
+                link.append(t + ext)
+        elif i == 2:
+            link.append('#' + t)
+        elif i > 2:
+            link.append('.' + t)
+
+    return ''.join(link)
+
 def build_path(tree, path):
     tree.path = path
     for i, child in enumerate(tree.children, 1):
         build_path(child, ".".join([path, str(i)]) if path else str(i))
 
-def build_md_main(directory):
+def make_toc(node, ext):
+    toc = []
+    depth = node.depth()
+    for n in node:
+        link = make_link(n, from_=node, ext)
+        title = n.title
+        indentation =  depth - n.depth()
+        toc.append(' ' * indentation + '* [%s](%s)' % (title, link))
+    return toc
+
+
+def build_md_main(directory, ext):
     os.chdir(directory)
     tree = build_branch('')
     build_path(tree, '')
     for n in tree:
+        n.content = make_toc(n, ext) + n.content
+
+    for n in tree:
+        n.content.insert(0,
+            "[Edit on GitHub](https://github.com/gregcaporaso/proto-iab/edit"
+            "/master/book/%s#L%d)\n" % (n.file, n.line))
+
+    for n in tree:
         spath = n.path.split('.', 2)
         if len(spath) == 3:
-            n.content.insert(0, "<a name='%s'></a>" % spath[-1])
+            n.content.insert(0, "<a name='%s'></a>\n" % spath[-1])
 
     for node in tree:
         rel_depth = node.depth()
@@ -253,7 +293,7 @@ def build_toc_md(build_map, root_path=None, file_ext=None):
             indentation = path.count('/') + path.count('.')
             link = link_from_path(path, file_ext)
             lines.append(' ' * indentation + '* ' + '[%s](%s)' % (title, link))
-    return '\n'.join(lines)
+    return lines
 
 def resolve_md_links(build_map, md, path, link_ext):
     for sha, path, title in build_map:
