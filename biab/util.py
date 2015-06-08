@@ -237,19 +237,19 @@ def build_md_main(directory, ext, repo, root, **settings):
 _format_ext_map = {'notebook' : 'ipynb'}
 
 
-def get_output_fp(output_root, path, output_ext):
+def get_output_fp(output_dir, path, output_ext):
     # input_dir, input_fn = os.path.split(input_fp)
     # input_basename = os.path.splitext(input_fn)[0]
     # input_dirs = input_dir.split(os.path.sep)
 
     output_fn = os.path.extsep.join([path, output_ext])
-    output_fp = os.path.join(output_root, output_fn)
+    output_fp = os.path.join(output_dir, output_fn)
     return output_fp
 
 
-def build_iab_main(input_root, output_root, out_format,
+def build_iab_main(input_dir, output_dir, out_format,
                    dry_run=False, format_ext_map=_format_ext_map,
-                   include_link_ext=True, execute=True, html_output_root=None):
+                   include_link_ext=True, execute=True):
     """ Convert md sources to readable book content, maintaining dir structure.
 
         A few additional processing steps happen here:
@@ -258,9 +258,9 @@ def build_iab_main(input_root, output_root, out_format,
 
         Parameters
         ----------
-        input_root : str
+        input_dir : str
             Root path for the markdown files.
-        output_root : str
+        output_dir : str
             Root path for the output files.
         out_format : str
             The ipymd format that output files should be written in (for example,
@@ -293,7 +293,7 @@ def build_iab_main(input_root, output_root, out_format,
 
     # Walk the input root directory. We only care about root and files
     # inside this loop (nothing happens with dirs).
-    for unit_number, (unit, chapters) in enumerate(input_root):
+    for unit_number, (unit, chapters) in enumerate(input_dir):
         # Iterate over the files in the current root.
         if unit_number == 0:
             unit_path = ''
@@ -308,7 +308,7 @@ def build_iab_main(input_root, output_root, out_format,
             # Convert it from markdown
             output_s = ipymd.convert(content_md, from_='markdown', to=out_format)
             # define the output filepath
-            output_fp = get_output_fp(output_root, path, output_ext)
+            output_fp = get_output_fp(output_dir, path, output_ext)
             try:
                 os.makedirs(os.path.split(output_fp)[0])
             except OSError:
@@ -317,24 +317,22 @@ def build_iab_main(input_root, output_root, out_format,
             # write the output ipynb
             IPython.nbformat.write(output_s, output_fp)
 
-    if html_output_root is not None:
-        html_exporter = HTMLExporter(preprocessors=['IPython.nbconvert.preprocessors.execute.ExecutePreprocessor'])
+    html_exporter = HTMLExporter(preprocessors=['IPython.nbconvert.preprocessors.execute.ExecutePreprocessor'])
 
-        for root, dirs, files in os.walk(output_root):
-            for f in files:
-                html_out, _ = html_exporter.from_filename(os.path.join(root, f))
-                output_fn = os.path.extsep.join([os.path.splitext(f)[0], 'html'])
-                output_fp = os.path.join(root, output_fn)
-                open(output_fp, 'w').write(html_out)
+    for root, dirs, files in os.walk(output_dir):
+        for f in files:
+            html_out, _ = html_exporter.from_filename(os.path.join(root, f))
+            output_fn = os.path.extsep.join([os.path.splitext(f)[0], 'html'])
+            output_fp = os.path.join(root, output_fn)
+            open(output_fp, 'w').write(html_out)
 
-def biab_notebook(input_dir, output_dir, html_output_root):
+def biab_notebook(input_dir, output_dir):
     with open(os.path.join(input_dir, 'config.yaml')) as f:
         settings = yaml.load(f.read())
     built_md = build_md_main(input_dir, '.ipynb', **settings)
-    build_iab_main(built_md, output_dir, 'notebook', html_output_root=html_output_root)
+    build_iab_main(built_md, output_dir, 'notebook')
 
 if __name__ == "__main__":
-    input_dir = argv[1]
-    ipynb_output_dir = os.path.abspath(argv[2])
-    html_output_dir = os.path.abspath(argv[3])
-    biab_notebook(input_dir, ipynb_output_dir, html_output_dir)
+    _input_dir = argv[1]
+    _output_dir = os.path.abspath(argv[2])
+    biab_notebook(input_dir=_input_dir, output_dir=_output_dir)
