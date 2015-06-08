@@ -12,6 +12,7 @@ from runipy.notebook_runner import NotebookRunner
 from IPython.nbconvert import HTMLExporter
 from IPython.config import Config
 from sys import argv
+from itertools import izip_longest
 import os
 import tempfile
 import CommonMark as cm
@@ -43,7 +44,7 @@ class Node(object):
         self.content = []
         self.title = ''
         self.id = ''
-        self.line = 1
+        self.start = 1
         self.file = ''
 
     def __getitem__(self, key):
@@ -117,13 +118,10 @@ def expand_file(fp):
 
             current_node.title = node.inline_content[0].c.strip()
             current_node.id = parser.get_id()
-            current_node.line = node.start_line
+            current_node.start = node.start_line
             current_node.file = fp
             current_node.content = lines[node.start_line:]
-            current_node.content.insert(0,
-                "\n[Edit on GitHub](https://github.com/gregcaporaso/proto-iab/edit"
-                "/master/book/%s#L%d)\n" % (current_node.file, current_node.line))
-            last_node.content = last_node.content[:node.start_line - last_node.line]
+            last_node.content = last_node.content[:node.start_line - last_node.start - 1]
             last_node = current_node
 
     return root.children[0]
@@ -142,15 +140,71 @@ def build_branch(rootdir):
 
     return tree
 
+def make_link(node, from_=None, ext=''):
+    link = []
+    path = node.path.split('.')
+    from_path = from_.path.split('.')
+    change_dir = False
+
+    for i, (t, f) in enumerate(izip_longest(path, from_path), 0):
+        if i < 1:
+            if t != f:
+                if t:
+                    link.append(t + '/')
+                elif not f:
+                    link.append('/')
+                if f:
+                    change_dir = True
+                    link.insert(0, '../')
+
+        elif t and i == 1:
+            if t != f or change_dir:
+                link.append(t + ext)
+        elif t and i == 2:
+            link.append('#' + t)
+        elif t and i > 2:
+            link.append('.' + t)
+
+    link = ''.join(link)
+    if link and link[-1] == '/':
+        link += 'index' + ext
+
+    return link
+
 def build_path(tree, path):
     tree.path = path
     for i, child in enumerate(tree.children, 1):
         build_path(child, ".".join([path, str(i)]) if path else str(i))
 
-def build_md_main(directory):
+def make_toc(node, ext):
+    toc = ['**Table of Contents**\n']
+    depth = node.depth()
+    for n in node:
+        if n is not node:
+            link = make_link(n, from_=node, ext=ext)
+            title = n.title
+            indentation =  n.depth() - depth - 1
+            toc.append(('    ' * indentation) + '* [%s](%s)\n' % (title, link))
+    toc.append('\n')
+    return toc
+
+
+def build_md_main(directory, ext, repo, root, **settings):
     os.chdir(directory)
     tree = build_branch('')
     build_path(tree, '')
+    id_map = []
+    for node in tree:
+        id_map.append((node.id, node))
+
+    for n in tree:
+        n.content = make_toc(n, ext) + n.content
+
+    for n in tree:
+        n.content.insert(0,
+            "\n[Edit on GitHub](https://github.com/%s/edit"
+            "/master/%s/%s#L%d)\n\n" % (repo, root, n.file, n.start))
+
     for n in tree:
         spath = n.path.split('.', 2)
         if len(spath) == 3:
@@ -163,118 +217,25 @@ def build_md_main(directory):
         else:
             node.content.insert(0, ('#' * (node.depth() - 2))+' %s ' % node.title)
 
+    for node in tree:
+        node.content = ''.join(node.content)
+        for id, n in id_map:
+            a, b = 'alias://%s' % id, make_link(n, from_=node, ext=ext)
+            node.content = node.content.replace(a, b)
 
     out = []
 
-    out.append(('', [''.join(tree.content)]))
+    out.append(('', [tree.content]))
     for i, unit in enumerate(tree.children, 1):
-        chapters = [''.join(unit.content)]
+        chapters = [unit.content]
         out.append((str(i), chapters))
         for chapter in unit.children:
-            chapters.append(''.join([''.join(section.content) for section in chapter]))
+            chapters.append(''.join([section.content for section in chapter]))
 
-    build_map = []
-    for node in tree:
-        #HACK
-        path = node.path
-        path = path.replace('.', '/', 1).replace('.', '#', 1)
-        build_map.append([node.id, path, node.title])
-
-    return out, build_map
-
-def _skipdir(dir):
-    return '.ipynb_checkpoints' in dir
+    return out
 
 _format_ext_map = {'notebook' : 'ipynb'}
 
-toc = """## Table of Contents
-
-%s
-
-"""
-
-def parse_build_map(f):
-    result = []
-    for line in f:
-        result.append(line.strip().split(','))
-    return result
-
-def build_link(unit=None, chapter=None, section=None, file_ext=None):
-    if unit is None:
-        return './'
-    elif chapter is None:
-        return './%s' % unit
-    elif file_ext is None:
-        link = './%s/%s' % (unit, chapter)
-    else:
-        link = './%s/%s%s%s' % (unit, chapter, os.path.extsep, file_ext)
-
-    if section is None:
-        return link
-    else:
-        return '%s#%s' % (link, section)
-
-def link_from_path(path, file_ext):
-
-    if '/' in path:
-        unit, chapter_section = path.split('/')
-    else:
-        return build_link(path, chapter=None, section=None, file_ext=file_ext)
-
-    if '#' in chapter_section:
-        chapter, section = chapter_section.split('#')
-    else:
-        return build_link(unit, chapter=chapter_section, section=None, file_ext=file_ext)
-
-    return build_link(unit, chapter, section, file_ext)
-
-def build_toc_md(build_map, root_path=None, file_ext=None):
-    """ Build a markdown table of contents of links
-
-        Parameters
-        ----------
-        root_path : str, None
-            The root path to start the table of contents from. If None, start
-            at the book's root.
-        file_ext : str
-            The file extension to append to chapters, if the links that are
-            generated need to include a filename extension.
-
-        Returns
-        -------
-        str
-            Markdown text that can be printed as a table of contents.
-
-    """
-    lines = []
-    if root_path is None:
-        search_prefix = ''
-    else:
-        search_prefix = root_path
-    for sha, path, title in build_map:
-        if path.startswith(search_prefix):
-            indentation = path.count('/') + path.count('.')
-            link = link_from_path(path, file_ext)
-            lines.append(' ' * indentation + '* ' + '[%s](%s)' % (title, link))
-    return '\n'.join(lines)
-
-def resolve_md_links(build_map, md, path, link_ext):
-    for sha, path, title in build_map:
-        md.replace('alias://%s' % sha, link_from_path(path, file_ext=link_ext))
-    return md
-
-def add_toc_to_md(build_map, md, path, link_ext):
-    lines = md.split('\n')
-    lines = [lines[0]] + [toc % build_toc_md(build_map, root_path=path, file_ext=link_ext)] + lines[1:]
-    return '\n'.join(lines)
-
-def fp_to_path(fp):
-    fields = fp.split(os.path.sep)[1:]
-    if fields[-1] == 'index.md':
-        fields = fields[:-1]
-    else:
-        fields[-1] = os.path.splitext(fields[-1])[0]
-    return '/'.join(fields)
 
 def get_output_fp(output_root, path, output_ext):
     # input_dir, input_fn = os.path.split(input_fp)
@@ -286,7 +247,7 @@ def get_output_fp(output_root, path, output_ext):
     return output_fp
 
 
-def build_iab_main(input_root, output_root, out_format, build_map,
+def build_iab_main(input_root, output_root, out_format,
                    dry_run=False, format_ext_map=_format_ext_map,
                    include_link_ext=True, execute=True, html_output_root=None):
     """ Convert md sources to readable book content, maintaining dir structure.
@@ -335,18 +296,15 @@ def build_iab_main(input_root, output_root, out_format, build_map,
     for unit_number, (unit, chapters) in enumerate(input_root):
         # Iterate over the files in the current root.
         if unit_number == 0:
-            unit_path = '0'
+            unit_path = ''
         else:
-            unit_path = str(unit_number)
+            unit_path = str(unit_number) + '/'
         for chapter_number, content_md in enumerate(chapters):
             if chapter_number == 0:
                 chapter_path = 'index'
             else:
                 chapter_path = str(chapter_number)
-            path = '%s/%s' % (unit_path, chapter_path)
-            # apply the processing steps
-            content_md = resolve_md_links(build_map, content_md, path, link_ext)
-            content_md = add_toc_to_md(build_map, content_md, path, link_ext)
+            path = '%s%s' % (unit_path, chapter_path)
             # Convert it from markdown
             output_s = ipymd.convert(content_md, from_='markdown', to=out_format)
             # define the output filepath
@@ -369,11 +327,11 @@ def build_iab_main(input_root, output_root, out_format, build_map,
                 output_fp = os.path.join(root, output_fn)
                 open(output_fp, 'w').write(html_out)
 
-
-
-def biab_notebook(input_dir, output_dir, html_output_dir):
-    built_md, build_map = build_md_main(input_dir)
-    build_iab_main(built_md, output_dir, 'notebook', build_map, html_output_root=html_output_dir)
+def biab_notebook(input_dir, output_dir, html_output_root):
+    with open(os.path.join(input_dir, 'config.yaml')) as f:
+        settings = yaml.load(f.read())
+    built_md = build_md_main(input_dir, '.ipynb', **settings)
+    build_iab_main(built_md, output_dir, 'notebook', html_output_root=html_output_root)
 
 if __name__ == "__main__":
     input_dir = argv[1]
