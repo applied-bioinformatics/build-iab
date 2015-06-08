@@ -1,0 +1,48 @@
+#!/usr/bin/env python
+
+# ----------------------------------------------------------------------------
+# Copyright (c) 2013--, IAB development team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+# ----------------------------------------------------------------------------
+
+import click
+
+
+_input = click.option('-i', '--input',  required=True,
+                      type=click.Path(exists=True, file_okay=False))
+
+_output = click.option('-o', '--output', required=True,
+                       type=click.Path(writable=True))
+
+
+cli = click.Group()
+
+
+@cli.command()
+@_input
+@_output
+def map(input, output):
+    if input is None:
+        raise
+
+
+@cli.command()
+@_input
+@_output
+@click.option('-z', '--zip', 'should_zip', is_flag=True)
+def notebook(input, output, should_zip):
+    print should_zip
+
+
+@cli.command()
+@_input
+@_output
+def html(input, output):
+    pass
+
+
+if __name__ == '__main__':
+    cli()
