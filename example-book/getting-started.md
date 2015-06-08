@@ -51,7 +51,6 @@ You can really actually run code...
 
 ```python
 >>> print("Hello world!")
-`Hello world!`
 ```
 
 ```python

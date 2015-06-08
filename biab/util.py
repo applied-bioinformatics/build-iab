@@ -8,6 +8,7 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
+from runipy.notebook_runner import NotebookRunner
 from sys import argv
 import os
 import tempfile
@@ -285,7 +286,7 @@ def get_output_fp(output_root, path, output_ext):
 
 def build_iab_main(input_root, output_root, out_format, build_map,
                    dry_run=False, format_ext_map=_format_ext_map,
-                   include_link_ext=True):
+                   include_link_ext=True, runipy=True):
     """ Convert md sources to readable book content, maintaining dir structure.
 
         A few additional processing steps happen here:
@@ -307,6 +308,9 @@ def build_iab_main(input_root, output_root, out_format, build_map,
             Dict mapping ipymd format to file extension.
         include_link_ext : bool, optional
             If ``True``, when creating links include file extensions.
+        runipy: bool, optional
+            If ``True``, run the ipython notebooks that are generated, so they
+            contain output for code cells.
 
     """
 
@@ -349,8 +353,15 @@ def build_iab_main(input_root, output_root, out_format, build_map,
                 os.makedirs(os.path.split(output_fp)[0])
             except OSError:
                 pass
+
             # write the output notebook
             IPython.nbformat.write(output_s, output_fp)
+            if runipy:
+                notebook = IPython.nbformat.current.read(open(output_fp), 'json')
+                r = NotebookRunner(notebook)
+                r.run_notebook(notebook)
+                IPython.nbformat.write(r.nb, output_fp)
+
 
 def biab_notebook(input_dir, output_dir):
     built_md, build_map = build_md_main(input_dir)
