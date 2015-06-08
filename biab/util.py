@@ -187,7 +187,7 @@ def make_toc(node, ext):
     return toc
 
 
-def build_md_main(directory, ext):
+def build_md_main(directory, ext, repo, root, **settings):
     os.chdir(directory)
     tree = build_branch('')
     build_path(tree, '')
@@ -200,8 +200,8 @@ def build_md_main(directory, ext):
 
     for n in tree:
         n.content.insert(0,
-            "\n[Edit on GitHub](https://github.com/gregcaporaso/proto-iab/edit"
-            "/master/book/%s#L%d)\n\n" % (n.file, n.start))
+            "\n[Edit on GitHub](https://github.com/%s/edit"
+            "/master/%s/%s#L%d)\n\n" % (repo, root, n.file, n.start))
 
     for n in tree:
         spath = n.path.split('.', 2)
@@ -322,7 +322,9 @@ def build_iab_main(input_root, output_root, out_format,
 
 
 def biab_notebook(input_dir, output_dir):
-    built_md = build_md_main(input_dir, '.ipynb')
+    with open(os.path.join(input_dir, 'config.yaml')) as f:
+        settings = yaml.load(f.read())
+    built_md = build_md_main(input_dir, '.ipynb', **settings)
     build_iab_main(built_md, output_dir, 'notebook')
 
 if __name__ == "__main__":
