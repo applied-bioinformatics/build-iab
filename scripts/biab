@@ -9,6 +9,8 @@
 # ----------------------------------------------------------------------------
 
 import click
+import random
+import string
 from biab.util import make_tree
 
 _input = click.option('-i', '--input',  required=True,
@@ -20,6 +22,11 @@ _output = click.option('-o', '--output', required=True,
 
 cli = click.Group()
 
+@cli.command()
+def idgen():
+    click.echo('<link src="%s"/>' %
+               ''.join(random.choice(string.ascii_letters +
+                                     string.digits) for _ in range(6)))
 
 @cli.command()
 @_input

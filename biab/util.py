@@ -11,17 +11,24 @@
 from IPython.nbconvert import HTMLExporter
 from IPython.config import Config
 from sys import argv
+import sys
 from itertools import izip_longest
 import os
 import tempfile
 import CommonMark as cm
-import ipymd
 import IPython
 from six.moves.html_parser import HTMLParser
 import yaml
 import shutil
 import csv
 
+def hacky():
+    sys.stdout = open(os.devnull, "w")
+    import ipymd
+    sys.stdout = sys.__stdout__
+    return ipymd
+
+ipymd = hacky()
 
 class IDFinder(HTMLParser):
     def handle_starttag(self, tag, attrs):
