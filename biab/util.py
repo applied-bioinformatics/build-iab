@@ -246,22 +246,17 @@ def build_md_main(directory, ext, repo, root, **settings):
 
     return out
 
-_format_ext_map = {'notebook' : 'ipynb'}
 
 
-def get_output_fp(output_root, path, output_ext):
-    # input_dir, input_fn = os.path.split(input_fp)
-    # input_basename = os.path.splitext(input_fn)[0]
-    # input_dirs = input_dir.split(os.path.sep)
 
-    output_fn = os.path.extsep.join([path, output_ext])
-    output_fp = os.path.join(output_root, output_fn)
+def get_output_fp(output_dir, path, ext):
+
+    output_fn = path + ext
+    output_fp = os.path.join(output_dir, output_fn)
     return output_fp
 
 
-def build_iab_main(input_root, output_root, out_format,
-                   dry_run=False, format_ext_map=_format_ext_map,
-                   include_link_ext=True, execute=True, html_output_root=None):
+def build_iab_main(input_dir, output_dir, out_format, ext):
     """ Convert md sources to readable book content, maintaining dir structure.
 
         A few additional processing steps happen here:
@@ -270,42 +265,20 @@ def build_iab_main(input_root, output_root, out_format,
 
         Parameters
         ----------
-        input_root : str
+        input_dir : str
             Root path for the markdown files.
-        output_root : str
+        output_dir : str
             Root path for the output files.
         out_format : str
             The ipymd format that output files should be written in (for example,
             ``notebook``).
-        dry_run : bool, optional
-            If ``True``, don't actually create new directories or write files.
-        format_ext_map : dict, optional
-            Dict mapping ipymd format to file extension.
-        include_link_ext : bool, optional
-            If ``True``, when creating links include file extensions.
-        execute: bool, optional
-            If ``True``, execute the ipython notebooks that are generated, so
-            they contain output for code cells.
+        ext : str
+            The extension to use for output files.
 
     """
-
-    # Find the file extension that should be used for this format. If we get
-    # a KeyError, this is an unknown output format.
-    try:
-        output_ext = format_ext_map[out_format]
-    except KeyError:
-        raise ValueError("Unknown output format: %s. Known formats are: "
-                         "%s" % (out_format, ", ".join(format_ext_map.keys())))
-    # If links should include the file extension, define that here. Otherwise,
-    # it is set to None, and there will be no extension included in the links.
-    if include_link_ext:
-        link_ext = output_ext
-    else:
-        link_ext = None
-
     # Walk the input root directory. We only care about root and files
     # inside this loop (nothing happens with dirs).
-    for unit_number, (unit, chapters) in enumerate(input_root):
+    for unit_number, (unit, chapters) in enumerate(input_dir):
         # Iterate over the files in the current root.
         if unit_number == 0:
             unit_path = ''
@@ -318,9 +291,9 @@ def build_iab_main(input_root, output_root, out_format,
                 chapter_path = str(chapter_number)
             path = '%s%s' % (unit_path, chapter_path)
             # Convert it from markdown
-            output_s = ipymd.convert(content_md, from_='markdown', to=out_format)
+            output_s = ipymd.convert(content_md, from_='markdown', to='notebook')
             # define the output filepath
-            output_fp = get_output_fp(output_root, path, output_ext)
+            output_fp = get_output_fp(output_dir, path, ext)
             try:
                 os.makedirs(os.path.split(output_fp)[0])
             except OSError:
@@ -329,24 +302,36 @@ def build_iab_main(input_root, output_root, out_format,
             # write the output ipynb
             IPython.nbformat.write(output_s, output_fp)
 
-    if html_output_root is not None:
+    if out_format == 'html':
         html_exporter = HTMLExporter(preprocessors=['IPython.nbconvert.preprocessors.execute.ExecutePreprocessor'])
 
-        for root, dirs, files in os.walk(output_root):
+        for root, dirs, files in os.walk(output_dir):
             for f in files:
                 html_out, _ = html_exporter.from_filename(os.path.join(root, f))
                 output_fn = os.path.extsep.join([os.path.splitext(f)[0], 'html'])
                 output_fp = os.path.join(root, output_fn)
                 open(output_fp, 'w').write(html_out)
 
-def biab_notebook(input_dir, output_dir, html_output_root):
+
+
+def biab_notebook(input_dir, output_dir, out_format):
+    format_ext_map = {'notebook' : '.ipynb', 'html': '.html'}
+    # Find the file extension that should be used for this format. If we get
+    # a KeyError, this is an unknown output format.
+    try:
+        ext = format_ext_map[out_format]
+    except KeyError:
+        raise ValueError("Unknown output format: %s. Known formats are: "
+                         "%s" % (out_format, ", ".join(format_ext_map.keys())))
+
     with open(os.path.join(input_dir, 'config.yaml')) as f:
         settings = yaml.load(f.read())
-    built_md = build_md_main(input_dir, '.ipynb', **settings)
-    build_iab_main(built_md, output_dir, 'notebook', html_output_root=html_output_root)
+
+    built_md = build_md_main(input_dir, ext, **settings)
+    build_iab_main(built_md, output_dir, out_format, ext)
 
 if __name__ == "__main__":
-    input_dir = argv[1]
-    ipynb_output_dir = os.path.abspath(argv[2])
-    html_output_dir = os.path.abspath(argv[3])
-    biab_notebook(input_dir, ipynb_output_dir, html_output_dir)
+    _input_dir = argv[1]
+    _output_dir = os.path.abspath(argv[2])
+    _out_format = argv[3]
+    biab_notebook(input_dir=_input_dir, output_dir=_output_dir, out_format=_out_format)
