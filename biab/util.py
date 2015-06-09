@@ -197,9 +197,11 @@ def make_toc(node, ext):
     return toc
 
 def make_tree(directory):
+    backup = os.getcwd()
     os.chdir(directory)
     tree = build_branch('')
     build_path(tree, '')
+    os.chdir(backup)
     return tree
 
 def build_md_main(directory, ext, repo, root, **settings):
@@ -329,9 +331,3 @@ def biab_notebook(input_dir, output_dir, out_format):
 
     built_md = build_md_main(input_dir, ext, **settings)
     build_iab_main(built_md, output_dir, out_format, ext)
-
-if __name__ == "__main__":
-    _input_dir = argv[1]
-    _output_dir = os.path.abspath(argv[2])
-    _out_format = argv[3]
-    biab_notebook(input_dir=_input_dir, output_dir=_output_dir, out_format=_out_format)

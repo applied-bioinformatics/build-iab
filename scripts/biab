@@ -11,7 +11,7 @@
 import click
 import random
 import string
-from biab.util import make_tree
+from biab.util import make_tree, biab_notebook
 
 _input = click.option('-i', '--input',  required=True,
                       type=click.Path(exists=True, file_okay=False))
@@ -41,14 +41,16 @@ def aliases(input):
 @_output
 @click.option('-z', '--zip', 'should_zip', is_flag=True)
 def notebook(input, output, should_zip):
-    print should_zip
+    if should_zip:
+        raise NotImplementedError()
+    biab_notebook(input, output, 'notebook')
 
 
 @cli.command()
 @_input
 @_output
 def html(input, output):
-    pass
+    biab_notebook(input, output, 'html')
 
 
 if __name__ == '__main__':
