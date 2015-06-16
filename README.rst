@@ -5,9 +5,8 @@ Build script for [An Introduction to Applied Bioinformatics](http://www.readIAB.
 Installation
 ------------
 
-Pending a releases of [ipymd](https://github.com/rossant/ipymd) and build-iab on pypi, run the following two commands to install ``biab``::
+Pending a release of build-iab on pypi, run the following command to install ``biab``::
 
-    pip install https://github.com/rossant/ipymd/archive/master.zip
     pip install https://github.com/gregcaporaso/build-iab/archive/master.zip
 
 
