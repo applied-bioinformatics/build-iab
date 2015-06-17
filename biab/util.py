@@ -12,7 +12,7 @@ from IPython.nbconvert import HTMLExporter
 from IPython.config import Config
 from sys import argv
 import sys
-from itertools import izip_longest
+from itertools import zip_longest
 import os
 import tempfile
 import CommonMark as cm
@@ -152,7 +152,7 @@ def make_link(node, from_=None, ext=''):
     from_path = from_.path.split('.')
     change_dir = False
 
-    for i, (t, f) in enumerate(izip_longest(path, from_path), 0):
+    for i, (t, f) in enumerate(zip_longest(path, from_path), 0):
         if i < 1:
             if t != f:
                 if t:
@@ -324,7 +324,7 @@ def biab_notebook(input_dir, output_dir, out_format):
         ext = format_ext_map[out_format]
     except KeyError:
         raise ValueError("Unknown output format: %s. Known formats are: "
-                         "%s" % (out_format, ", ".join(format_ext_map.keys())))
+                         "%s" % (out_format, ", ".join(list(format_ext_map.keys()))))
 
     with open(os.path.join(input_dir, 'config.yaml')) as f:
         settings = yaml.load(f.read())
