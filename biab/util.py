@@ -305,7 +305,10 @@ def build_iab_main(input_dir, output_dir, out_format, ext):
             IPython.nbformat.write(output_s, output_fp)
 
     if out_format == 'html':
-        html_exporter = HTMLExporter(preprocessors=['IPython.nbconvert.preprocessors.execute.ExecutePreprocessor'])
+        c = Config()
+        c.ExecutePreprocessor.timeout = 600
+        html_exporter = HTMLExporter(preprocessors=['IPython.nbconvert.preprocessors.execute.ExecutePreprocessor'],
+                                     config=c)
 
         for root, dirs, files in os.walk(output_dir):
             for f in files:
