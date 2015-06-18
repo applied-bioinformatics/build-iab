@@ -4,13 +4,10 @@ import boto
 from boto.s3.key import Key
 
 def upload_s3_book(release, directory):
-    html = {
-        'Content-type': 'text/html; charset=utf-8'
-    }
-
-
     conn = boto.connect_s3()
     bucket = conn.get_bucket('readiab.org')
+
+    html = {'Content-type': 'text/html; charset=utf-8'}
 
     key_prefix = 'book/%s/' % release
     root_offset = None
@@ -25,18 +22,15 @@ def upload_s3_book(release, directory):
             if r:
                  key += r + '/'
 
-            if not file.startswith('index') and not file.endswith('.zip'):
-                key += file.split('.')[0]
-            else:
-                key += file
+            key += file
+            if file.startswith('index'):
+                 key += '.html'
 
             path = os.path.join(root, file)
 
             upload = Key(bucket)
             upload.key = key
-            if '.zip' not in file:
-                upload.set_contents_from_filename(path, headers=html)
-            else:
+            if '.zip' in path:
                 upload.set_contents_from_filename(path)
-
-            print("uploaded: " + key)
+            else:
+                upload.set_contents_from_filename(path, headers=html)

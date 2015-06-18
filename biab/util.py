@@ -146,7 +146,7 @@ def build_branch(rootdir):
 
     return tree
 
-def make_link(node, from_=None, ext=''):
+def make_link(node, from_=None, ext='', short_index=False):
     link = []
     path = node.path.split('.')
     from_path = from_.path.split('.')
@@ -172,7 +172,7 @@ def make_link(node, from_=None, ext=''):
             link.append('.' + t)
 
     link = ''.join(link)
-    if link and link[-1] == '/':
+    if not short_index and link and link[-1] == '/':
         link += 'index' + ext
 
     return link
@@ -182,12 +182,12 @@ def build_path(tree, path):
     for i, child in enumerate(tree.children, 1):
         build_path(child, ".".join([path, str(i)]) if path else str(i))
 
-def make_toc(node, ext):
+def make_toc(node, ext, short_index):
     toc = ['**Table of Contents**\n']
     depth = node.depth()
     for n in node:
         if n is not node:
-            link = make_link(n, from_=node, ext=ext)
+            link = make_link(n, from_=node, ext=ext, short_index=short_index)
             title = n.title
             indentation =  n.depth() - depth - 1
             toc.append(('    ' * indentation) + '* [%s](%s)\n' % (title, link))
@@ -204,7 +204,7 @@ def make_tree(directory):
     os.chdir(backup)
     return tree
 
-def build_md_main(directory, ext, repo, root, **settings):
+def build_md_main(directory, ext, repo, root, short_index, **settings):
     tree = make_tree(directory)
 
     id_map = []
@@ -212,7 +212,7 @@ def build_md_main(directory, ext, repo, root, **settings):
         id_map.append((node.id, node))
 
     for n in tree:
-        n.content = make_toc(n, ext) + n.content
+        n.content = make_toc(n, ext, short_index) + n.content
 
     for n in tree:
         n.content.insert(0,
@@ -234,7 +234,7 @@ def build_md_main(directory, ext, repo, root, **settings):
     for node in tree:
         node.content = ''.join(node.content)
         for id, n in id_map:
-            a, b = 'alias://%s' % id, make_link(n, from_=node, ext=ext)
+            a, b = 'alias://%s' % id, make_link(n, from_=node, ext=ext, short_index=short_index)
             node.content = node.content.replace(a, b)
 
     out = []
@@ -304,7 +304,7 @@ def build_iab_main(input_dir, output_dir, out_format, ext):
             # write the output ipynb
             IPython.nbformat.write(output_s, output_fp)
 
-    if out_format == 'html':
+    if out_format == 'html' or out_format == 's3':
         c = Config()
         c.ExecutePreprocessor.timeout = 600
         html_exporter = HTMLExporter(preprocessors=['IPython.nbconvert.preprocessors.execute.ExecutePreprocessor'],
@@ -313,14 +313,14 @@ def build_iab_main(input_dir, output_dir, out_format, ext):
         for root, dirs, files in os.walk(output_dir):
             for f in files:
                 html_out, _ = html_exporter.from_filename(os.path.join(root, f))
-                output_fn = os.path.extsep.join([os.path.splitext(f)[0], 'html'])
+                output_fn = os.path.splitext(f)[0] + ext
                 output_fp = os.path.join(root, output_fn)
                 open(output_fp, 'w').write(html_out)
 
 
 
 def biab_notebook(input_dir, output_dir, out_format):
-    format_ext_map = {'notebook' : '.ipynb', 'html': '.html'}
+    format_ext_map = {'notebook' : '.ipynb', 'html': '.html', 's3': ''}
     # Find the file extension that should be used for this format. If we get
     # a KeyError, this is an unknown output format.
     try:
@@ -332,5 +332,7 @@ def biab_notebook(input_dir, output_dir, out_format):
     with open(os.path.join(input_dir, 'config.yaml')) as f:
         settings = yaml.load(f.read())
 
-    built_md = build_md_main(input_dir, ext, **settings)
+
+    short_index = out_format == 'html' or out_format == 's3'
+    built_md = build_md_main(input_dir, ext, short_index=short_index, **settings)
     build_iab_main(built_md, output_dir, out_format, ext)

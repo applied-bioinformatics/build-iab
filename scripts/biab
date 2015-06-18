@@ -11,6 +11,8 @@
 import click
 import random
 import string
+import tempfile
+import shutil
 from biab.util import make_tree, biab_notebook
 
 _input = click.option('-i', '--input',  required=True,
@@ -52,12 +54,16 @@ def notebook(input, output, should_zip):
 def html(input, output):
     biab_notebook(input, output, 'html')
 
+
 @cli.command()
 @_input
 @click.option('-v', '--version', required=True)
 def s3(input, version):
     from biab.s3 import upload_s3_book
-    upload_s3_book(version, input)
+    tempdir = tempfile.mkdtemp()
+    biab_notebook(input, tempdir, 's3')
+    upload_s3_book(version, tempdir)
+    shutil.rmtree(tempdir)
 
 if __name__ == '__main__':
     cli()
