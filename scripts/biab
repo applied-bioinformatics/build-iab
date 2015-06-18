@@ -57,13 +57,16 @@ def html(input, output):
 
 @cli.command()
 @_input
+@_output
+def s3build(input, output):
+    biab_notebook(input, output, 's3')
+
+@cli.command()
+@_input
 @click.option('-v', '--version', required=True)
-def s3(input, version):
+def s3upload(input, version):
     from biab.s3 import upload_s3_book
-    tempdir = tempfile.mkdtemp()
-    biab_notebook(input, tempdir, 's3')
-    upload_s3_book(version, tempdir)
-    shutil.rmtree(tempdir)
+    upload_s3_book(version, input)
 
 if __name__ == '__main__':
     cli()
