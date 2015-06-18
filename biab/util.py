@@ -10,6 +10,7 @@
 
 from IPython.nbconvert import HTMLExporter
 from IPython.config import Config
+from io import StringIO
 from sys import argv
 import sys
 from itertools import zip_longest
@@ -34,8 +35,15 @@ def md_to_html(input_fp, output_fp, ignore_badges=True):
         if ignore_badges and line.startswith('[!'):
             continue
         md_lines.append(line)
-    html = markdown2.markdown('\n'.join(md_lines))
-    open(output_fp, 'w').write(html)
+
+    nb_s = ipymd.convert('\n'.join(md_lines),
+                             from_='markdown', to='notebook')
+    print(type(nb_s))
+    html_exporter = HTMLExporter()
+
+    html_out, _ = html_exporter.from_notebook_node(nb_s)
+    #html = markdown2.markdown('\n'.join(md_lines))
+    open(output_fp, 'w').write(html_out)
 
 def hacky():
     sys.stdout = open(os.devnull, "w")
