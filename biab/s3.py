@@ -38,3 +38,5 @@ def upload_s3_book(release, directory):
                 upload.set_contents_from_filename(path, headers=html)
             else:
                 upload.set_contents_from_filename(path)
+
+            print("uploaded: " + key)
