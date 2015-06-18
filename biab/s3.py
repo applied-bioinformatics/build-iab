@@ -35,6 +35,6 @@ def upload_s3_book(release, directory):
             upload = Key(bucket)
             upload.key = key
             if '.zip' not in file:
-                upload.set_contents_from_file(path, headers=html)
+                upload.set_contents_from_filename(path, headers=html)
             else:
-                upload.set_contents_from_file(path)
+                upload.set_contents_from_filename(path)
