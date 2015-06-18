@@ -21,6 +21,9 @@ _input = click.option('-i', '--input',  required=True,
 _output = click.option('-o', '--output', required=True,
                        type=click.Path(writable=True))
 
+_css = click.option('-c', '--css', default=None,
+                    type=click.Path(exists=True, dir_okay=False))
+
 
 cli = click.Group()
 
@@ -51,15 +54,17 @@ def notebook(input, output, should_zip):
 @cli.command()
 @_input
 @_output
-def html(input, output):
-    biab_notebook(input, output, 'html')
+@_css
+def html(input, output, css):
+    biab_notebook(input, output, 'html', css=css)
 
 
 @cli.command()
 @_input
 @_output
-def s3build(input, output):
-    biab_notebook(input, output, 's3')
+@_css
+def s3build(input, output, css):
+    biab_notebook(input, output, 's3', css=css)
 
 @cli.command()
 @_input

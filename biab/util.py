@@ -205,7 +205,7 @@ def make_toc(node, ext, short_index):
             link = make_link(n, from_=node, ext=ext, short_index=short_index)
             title = n.title
             indentation =  n.depth() - depth - 1
-            toc.append(('    ' * indentation) + '* [%s](%s)\n' % (title, link))
+            toc.append(('    ' * indentation) + '0. [%s](%s)\n' % (title, link))
     toc.append('\n')
     if len(toc) == 2:
         return []
@@ -241,7 +241,10 @@ def build_md_main(directory, ext, repo, root, short_index, **settings):
 
     for node in tree:
         rel_depth = node.depth()
-        heading = "[%s](alias://%s)" % (node.path, node.id), node.title
+        if node.path:
+            heading = "[%s](alias://%s)" % (node.path, node.id), node.title
+        else:
+            heading = '', node.title
         if rel_depth < 3:
             node.content.insert(0, ('# %s %s' % heading))
         else:
@@ -274,7 +277,7 @@ def get_output_fp(output_dir, path, ext):
     return output_fp
 
 
-def build_iab_main(input_dir, output_dir, out_format, ext):
+def build_iab_main(input_dir, output_dir, out_format, ext, css=None):
     """ Convert md sources to readable book content, maintaining dir structure.
 
         A few additional processing steps happen here:
@@ -327,6 +330,8 @@ def build_iab_main(input_dir, output_dir, out_format, ext):
                                      config=c)
 
         for root, dirs, files in os.walk(output_dir):
+            if css:
+                shutil.copy(css, os.path.join(root, 'custom.css'))
             for f in files:
                 html_out, _ = html_exporter.from_filename(os.path.join(root, f))
                 output_fn = os.path.splitext(f)[0] + ext
@@ -335,7 +340,7 @@ def build_iab_main(input_dir, output_dir, out_format, ext):
 
 
 
-def biab_notebook(input_dir, output_dir, out_format):
+def biab_notebook(input_dir, output_dir, out_format, css=None):
     format_ext_map = {'notebook' : '.ipynb', 'html': '.html', 's3': ''}
     # Find the file extension that should be used for this format. If we get
     # a KeyError, this is an unknown output format.
@@ -351,4 +356,4 @@ def biab_notebook(input_dir, output_dir, out_format):
 
     short_index = out_format == 'html' or out_format == 's3'
     built_md = build_md_main(input_dir, ext, short_index=short_index, **settings)
-    build_iab_main(built_md, output_dir, out_format, ext)
+    build_iab_main(built_md, output_dir, out_format, ext, css=css)
