@@ -16,15 +16,15 @@ def upload_s3_book(release, directory):
         if not root_offset:
             root_offset = root
 
-        r = root.lstrip(root_offset)
+        r = root.replace(root_offset, '').replace('/', '')
         for file in files:
             key = key_prefix
             if r:
-                 key += r + '/'
+                key += r + '/'
 
             key += file
             if file.startswith('index'):
-                 key += '.html'
+                key += '.html'
 
             path = os.path.join(root, file)
 

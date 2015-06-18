@@ -216,8 +216,8 @@ def build_md_main(directory, ext, repo, root, short_index, **settings):
 
     for n in tree:
         n.content.insert(0,
-            "\n[Edit on GitHub](https://github.com/%s/edit"
-            "/master/%s/%s#L%d)\n\n" % (repo, root, n.file, n.start))
+            " <a class='iab-edit' href='https://github.com/%s/edit/master"
+            "/%s/%s#L%d' target='_blank'>[edit]</a>\n\n" % (repo, root, n.file, n.start))
 
     for n in tree:
         spath = n.path.split('.', 2)
@@ -226,10 +226,11 @@ def build_md_main(directory, ext, repo, root, short_index, **settings):
 
     for node in tree:
         rel_depth = node.depth()
+        heading = "[%s](alias://%s)" % (node.path, node.id), node.title
         if rel_depth < 3:
-            node.content.insert(0, ('# %s ' % node.title))
+            node.content.insert(0, ('# %s %s' % heading))
         else:
-            node.content.insert(0, ('#' * (node.depth() - 2))+' %s ' % node.title)
+            node.content.insert(0, ('#' * (node.depth() - 2))+' %s %s' % heading)
 
     for node in tree:
         node.content = ''.join(node.content)
