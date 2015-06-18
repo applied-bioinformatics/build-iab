@@ -46,7 +46,7 @@ setup(name='build-iab',
       packages=find_packages(),
       scripts=glob("scripts/*"),
       install_requires=['ipymd', 'PyYAML', 'CommonMark', 'click', 'IPython[notebook]',
-                        'six', 'runipy', 'boto'],
+                        'six', 'runipy', 'boto', 'markdown2'],
       extras_require={'test': ["nose >= 0.10.1", "pep8", "flake8"]},
       classifiers=classifiers,
       )

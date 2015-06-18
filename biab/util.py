@@ -14,6 +14,7 @@ from sys import argv
 import sys
 from itertools import zip_longest
 import os
+import markdown2
 import tempfile
 import CommonMark as cm
 import IPython
@@ -21,6 +22,20 @@ from six.moves.html_parser import HTMLParser
 import yaml
 import shutil
 import csv
+
+def md_to_html(input_fp, output_fp, ignore_badges=True):
+    """ Convert a markdown file to HTML.
+
+        This is useful for converting the README.md to an index.html.
+    """
+    md_lines = []
+    for line in open(input_fp):
+        line = line.strip('\n')
+        if ignore_badges and line.startswith('[!'):
+            continue
+        md_lines.append(line)
+    html = markdown2.markdown('\n'.join(md_lines))
+    open(output_fp, 'w').write(html)
 
 def hacky():
     sys.stdout = open(os.devnull, "w")
