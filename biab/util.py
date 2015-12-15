@@ -8,8 +8,9 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from IPython.nbconvert import HTMLExporter
-from IPython.config import Config
+from nbconvert import HTMLExporter
+from traitlets.config import Config
+import nbformat
 from io import StringIO
 from sys import argv
 import sys
@@ -18,7 +19,6 @@ import os
 import markdown2
 import tempfile
 import CommonMark as cm
-import IPython
 from six.moves.html_parser import HTMLParser
 import yaml
 import shutil
@@ -329,12 +329,12 @@ def build_iab_main(input_dir, output_dir, out_format, ext, css=None):
                 pass
 
             # write the output ipynb
-            IPython.nbformat.write(output_s, output_fp)
+            nbformat.write(output_s, output_fp)
 
     if out_format == 'html' or out_format == 's3':
         c = Config()
         c.ExecutePreprocessor.timeout = 600
-        html_exporter = HTMLExporter(preprocessors=['IPython.nbconvert.preprocessors.execute.ExecutePreprocessor'],
+        html_exporter = HTMLExporter(preprocessors=['nbconvert.preprocessors.execute.ExecutePreprocessor'],
                                      config=c)
 
         for root, dirs, files in os.walk(output_dir):
