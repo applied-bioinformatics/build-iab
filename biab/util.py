@@ -63,7 +63,10 @@ class IDFinder(HTMLParser):
         raise Exception("Invalid ID for section")
 
     def get_id(self):
-        return self._ID
+        try:
+            return self._ID
+        except AttributeError:
+            raise ValueError("A section is missing its ID.")
 
 class Node(object):
 
