@@ -110,7 +110,7 @@ def expand_file(fp):
 
     with open(fp) as f:
         lines = f.readlines()
-        ast = cm.DocParser().parse(''.join(lines))
+        ast = cm.Parser().parse(''.join(lines))
 
     root = Node()
     root.file = fp
