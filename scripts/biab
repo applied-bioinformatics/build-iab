@@ -13,6 +13,7 @@ import random
 import string
 import tempfile
 import shutil
+import notebook.transutils
 from biab.util import make_tree, biab_notebook
 
 _input = click.option('-i', '--input',  required=True,
