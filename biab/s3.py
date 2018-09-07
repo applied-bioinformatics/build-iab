@@ -2,9 +2,11 @@ import os
 
 import boto
 from boto.s3.key import Key
+from boto.s3.connection import OrdinaryCallingFormat
 
 def upload_s3_book(release, directory):
-    conn = boto.connect_s3()
+    conn = boto.s3.connect_to_region(
+        'us-west-1', calling_format=OrdinaryCallingFormat())
     bucket = conn.get_bucket('readiab.org')
 
     html = {'Content-type': 'text/html; charset=utf-8'}
