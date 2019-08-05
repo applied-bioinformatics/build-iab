@@ -10,6 +10,7 @@ def upload_s3_book(release, directory):
     bucket = conn.get_bucket('readiab.org')
 
     html = {'Content-type': 'text/html; charset=utf-8'}
+    css = {'Content-type': 'text/css; charset=utf-8'}
 
     key_prefix = 'book/%s/' % release
     root_offset = None
@@ -34,5 +35,7 @@ def upload_s3_book(release, directory):
             upload.key = key
             if '.zip' in path:
                 upload.set_contents_from_filename(path)
+            elif '.css' in path:
+                upload.set_contents_from_filename(path, headers=css)
             else:
                 upload.set_contents_from_filename(path, headers=html)
